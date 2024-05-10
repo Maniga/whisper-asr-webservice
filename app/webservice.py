@@ -12,6 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from whisper import tokenizer
 from urllib.parse import quote
 
+from .translation.translation import translate_to_german
+
 ASR_ENGINE = os.getenv("ASR_ENGINE", "openai_whisper")
 if ASR_ENGINE == "faster_whisper":
     from .faster_whisper.core import transcribe, language_detection
@@ -57,6 +59,28 @@ if path.exists(assets_path + "/swagger-ui.css") and path.exists(assets_path + "/
 @app.get("/", response_class=RedirectResponse, include_in_schema=False)
 async def index():
     return "/docs"
+
+@app.post("/translate", tags=["Endpoints"])
+async def translate(
+    text: Union[str, None] = Query(default=None),
+    src_language: Union[str, None] = Query(default=None, enum=LANGUAGE_CODES)
+):
+    result = translate_to_german(text, src_language)
+    return StreamingResponse(
+        result,
+        media_type="text/plain"
+)
+
+@app.post("/diarize", tags=["Endpoints"])
+async def asr(
+        audio_file: UploadFile = File(...),
+        encode: bool = Query(default=True, description="Encode audio first through ffmpeg"),
+):
+    result = diarize(load_audio(audio_file.file, encode), SAMPLE_RATE)
+    return StreamingResponse(
+    result,
+    media_type="text/plain"
+)
 
 
 @app.post("/asr", tags=["Endpoints"])

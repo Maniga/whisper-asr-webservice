@@ -21,9 +21,11 @@ services:
       - cache-pip:/root/.cache/pip
       - cache-poetry:/root/.cache/poetry
       - cache-whisper:/root/.cache/whisper
+      - cache-transformers:/root/.cache/transformers
 
 volumes:
   cache-pip:
   cache-poetry:
   cache-whisper:
   cache-faster-whisper:
+  cache-transformers:
