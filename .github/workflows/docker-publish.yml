@@ -25,6 +25,8 @@ jobs:
             tag_extension: -gpu
             platforms: linux/amd64
     steps:
+    - name: check diskspace
+      run: df -h
     - name: Checkout
       uses: actions/checkout@v3
     - name: Set up QEMU

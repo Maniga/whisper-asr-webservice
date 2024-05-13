@@ -71,18 +71,6 @@ async def translate(
         media_type="text/plain"
 )
 
-@app.post("/diarize", tags=["Endpoints"])
-async def asr(
-        audio_file: UploadFile = File(...),
-        encode: bool = Query(default=True, description="Encode audio first through ffmpeg"),
-):
-    result = diarize(load_audio(audio_file.file, encode), SAMPLE_RATE)
-    return StreamingResponse(
-    result,
-    media_type="text/plain"
-)
-
-
 @app.post("/asr", tags=["Endpoints"])
 async def asr(
         audio_file: UploadFile = File(...),
