@@ -1,4 +1,5 @@
 import os
+import json
 import torch
 from io import StringIO
 from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
@@ -25,4 +26,14 @@ def translate_to_german(text, src_lang):
     generated_tokens = model.generate(**encoded, forced_bos_token_id=tokenizer.get_lang_id("de"))
 
     # Decode and return the translation
-    return tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
+    translation = tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
+
+     # Create a JSON object with the result
+    result = {
+        "source_language": src_lang,
+        "target_language": "de",
+        "original_text": text,
+        "translated_text": translation
+    }
+
+    return json.dumps(result, ensure_ascii=False)
