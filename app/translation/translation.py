@@ -8,6 +8,14 @@ language_transformer_path = os.getenv("LANGUAGE_TRANSFORMER_PATH", os.path.join(
 
 # Check if GPU is available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Device for translation selected: {device}")
+
+if device.type == 'cuda':
+    print(f"CUDA Device Name: {torch.cuda.get_device_name(0)}")
+    print(f"CUDA Device Count: {torch.cuda.device_count()}")
+else:
+    print("CUDA is not available. Using CPU instead.")
+
 model_name = "facebook/m2m100_1.2B"  # You can also use larger models for better accuracy
 
 def translate_to_german(text, src_lang):
