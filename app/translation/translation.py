@@ -32,11 +32,15 @@ else:
 model_name = "facebook/m2m100_1.2B"  # You can also use larger models for better accuracy
 logger.info(f"Translation model: {model_name}")
 
-def translate_to_german(text, src_lang):
-    # Initialize the tokenizer and model on the specified device
-    tokenizer = M2M100Tokenizer.from_pretrained(model_name, cache_dir=language_transformer_path)
-    model = M2M100ForConditionalGeneration.from_pretrained(model_name, cache_dir=language_transformer_path).to(device)
+# Load the tokenizer and model once, globally
+tokenizer = M2M100Tokenizer.from_pretrained(model_name, cache_dir=language_transformer_path)
+model = M2M100ForConditionalGeneration.from_pretrained(model_name, cache_dir=language_transformer_path).to(device)
 
+# Use FP16 precision if CUDA is available
+if device.type == 'cuda':
+    model = model.half()
+
+def translate_to_german(text, src_lang):
     # Set the target language
     tokenizer.src_lang = src_lang  # Default to English, model will auto-detect if wrong
     tokenizer.tgt_lang = "de"
@@ -50,7 +54,7 @@ def translate_to_german(text, src_lang):
     # Decode and return the translation
     translation = tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
 
-     # Create a JSON object with the result
+    # Create a JSON object with the result
     result = {
         "source_language": src_lang,
         "target_language": "de",
