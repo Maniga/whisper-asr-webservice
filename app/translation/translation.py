@@ -1,22 +1,36 @@
 import os
 import json
 import torch
+import logging
+import sys
 from io import StringIO
 from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
+
+# Configure logging to output to stdout
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 language_transformer_path = os.getenv("LANGUAGE_TRANSFORMER_PATH", os.path.join(os.path.expanduser("~"), ".cache", "transformers"))
 
 # Check if GPU is available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Device for translation selected: {device}")
+logger.info(f"Device for translation selected: {device}")
 
 if device.type == 'cuda':
-    print(f"CUDA Device Name: {torch.cuda.get_device_name(0)}")
-    print(f"CUDA Device Count: {torch.cuda.device_count()}")
+    logger.info(f"CUDA Device Name: {torch.cuda.get_device_name(0)}")
+    logger.info(f"CUDA Device Count: {torch.cuda.device_count()}")
 else:
-    print("CUDA is not available. Using CPU instead.")
+    logger.info("CUDA is not available. Using CPU instead.")
 
 model_name = "facebook/m2m100_1.2B"  # You can also use larger models for better accuracy
+logger.info(f"Translation model: {model_name}")
 
 def translate_to_german(text, src_lang):
     # Initialize the tokenizer and model on the specified device
