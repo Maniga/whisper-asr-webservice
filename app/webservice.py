@@ -62,8 +62,8 @@ async def index():
 
 @app.post("/translate", tags=["Endpoints"])
 async def translate(
-    text: Union[str, None] = Query(default=None),
-    src_language: Union[str, None] = Query(default=None, enum=LANGUAGE_CODES)
+    text: str = Query(...),
+    src_language: str = Query(..., enum=LANGUAGE_CODES)
 ):
     result = translate_to_german(text, src_language)
     return StreamingResponse(
