@@ -5,6 +5,7 @@ import logging
 import sys
 from io import StringIO
 from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
+from langdetect import detect, LangDetectException
 
 # Configure logging to output to stdout
 logging.basicConfig(
@@ -40,7 +41,13 @@ model = M2M100ForConditionalGeneration.from_pretrained(model_name, cache_dir=lan
 if device.type == 'cuda':
     model = model.half()
 
-def translate_to_german(text, src_lang):
+def translate_to_german(text, src_lang=None):
+
+    if src_lang is None:
+        src_lang = detect_language(text)
+        if src_lang is None:
+            return json.dumps({"error": "Could not detect language"}, ensure_ascii=False)
+    
     # Set the target language
     tokenizer.src_lang = src_lang  # Default to English, model will auto-detect if wrong
     tokenizer.tgt_lang = "de"
@@ -63,3 +70,21 @@ def translate_to_german(text, src_lang):
     }
 
     return json.dumps(result, ensure_ascii=False)
+
+def detect_language(text):
+    """
+    Detects the language of the given text.
+    
+    Args:
+    - text (str): The text to detect the language of.
+    
+    Returns:
+    - str: The ISO 639-1 code of the detected language, or None if detection fails.
+    """
+    try:
+        detected_lang = detect(text)
+        logger.info(f"Detected language: {detected_lang}")
+        return detected_lang
+    except LangDetectException as e:
+        logger.error(f"Language detection failed: {e}")
+        return None
