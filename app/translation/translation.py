@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import torch
 import logging
 import sys
@@ -48,25 +49,35 @@ def translate_to_german(text, src_lang=None):
         if src_lang is None:
             return json.dumps({"error": "Could not detect language"}, ensure_ascii=False)
     
-    # Set the target language
-    tokenizer.src_lang = src_lang  # Default to English, model will auto-detect if wrong
+    # Set the source and target languages
+    tokenizer.src_lang = src_lang
     tokenizer.tgt_lang = "de"
 
-    # Encode the text and move tensors to the appropriate device
-    encoded = tokenizer(text, return_tensors="pt").to(device)
+    logger.info(f"Translating from {src_lang} to de")
 
-    # Generate translation
-    generated_tokens = model.generate(**encoded, forced_bos_token_id=tokenizer.get_lang_id("de"))
+    # Split text into sentences
+    sentences = re.split(r'(?<=[.!?]) +', text)
 
-    # Decode and return the translation
-    translation = tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
+    # Translate each sentence
+    translations = []
+    for sentence in sentences:
+        encoded = tokenizer(sentence, return_tensors="pt", padding=True, truncation=True).to(device)
+        generated_tokens = model.generate(**encoded, forced_bos_token_id=tokenizer.get_lang_id("de"))
+        translation = tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
+        translations.append(translation)
+    
+    # Combine all translations into a single string
+    full_translation = ' '.join(translations)
+
+    # Log the translation for debugging
+    logger.info(f"Translation: {full_translation}")
 
     # Create a JSON object with the result
     result = {
         "source_language": src_lang,
         "target_language": "de",
         "original_text": text,
-        "translated_text": translation
+        "translated_text": full_translation
     }
 
     return json.dumps(result, ensure_ascii=False)
