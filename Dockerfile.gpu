@@ -60,10 +60,9 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 RUN ln -s /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 && \
     ln -s /usr/bin/python${PYTHON_VERSION} /usr/bin/python && \
     ln -s /usr/bin/pip3 /usr/bin/pip && \
-    python3 -m venv $POETRY_VENV && \
+    python${PYTHON_VERSION} -m venv $POETRY_VENV && \
     $POETRY_VENV/bin/pip install -U pip setuptools && \
-    $POETRY_VENV/bin/pip install poetry==1.6.1 && \
-    rm -rf /root/.cache/pip
+    $POETRY_VENV/bin/pip install poetry==1.6.1
 
 ENV PATH="${PATH}:${POETRY_VENV}/bin"
 
@@ -72,8 +71,7 @@ WORKDIR /app
 COPY poetry.lock pyproject.toml ./
 RUN poetry config virtualenvs.in-project true && \
     poetry install --no-root && \
-    rm -rf /root/.cache/pypoetry && \
-    rm -rf /usr/local/lib/python${PYTHON_VERSION}/dist-packages/*
+    rm -rf /root/.cache/pypoetry
 
 COPY . .
 COPY --from=ffmpeg /root/bin/ffmpeg /usr/local/bin/ffmpeg
