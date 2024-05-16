@@ -57,9 +57,9 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-RUN ln -s /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 && \
-    ln -s /usr/bin/python${PYTHON_VERSION} /usr/bin/python && \
-    ln -s /usr/bin/pip3 /usr/bin/pip && \
+RUN [ -e /usr/bin/python3 ] || ln -s /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 && \
+    [ -e /usr/bin/python ] || ln -s /usr/bin/python${PYTHON_VERSION} /usr/bin/python && \
+    [ -e /usr/bin/pip ] || ln -s /usr/bin/pip3 /usr/bin/pip && \
     python${PYTHON_VERSION} -m venv $POETRY_VENV && \
     $POETRY_VENV/bin/pip install -U pip setuptools && \
     $POETRY_VENV/bin/pip install poetry==1.6.1
