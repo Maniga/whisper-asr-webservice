@@ -1,3 +1,4 @@
+# Stage 1: Build FFmpeg
 FROM debian:bookworm-slim AS ffmpeg
 
 RUN export DEBIAN_FRONTEND=noninteractive \
@@ -36,10 +37,13 @@ RUN PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./
       --enable-small && \
     PATH="$HOME/bin:$PATH" make -j$(nproc) && \
     make install && \
-    hash -r
+    hash -r && \
+    rm -rf /FFmpeg-6.1.1
 
+# Stage 2: Get Swagger UI assets
 FROM swaggerapi/swagger-ui:v5.9.1 AS swagger-ui
 
+# Stage 3: Final Image
 FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
 
 ENV PYTHON_VERSION=3.10
@@ -53,31 +57,32 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-RUN ln -s -f /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 && \
-    ln -s -f /usr/bin/python${PYTHON_VERSION} /usr/bin/python && \
-    ln -s -f /usr/bin/pip3 /usr/bin/pip
-
-RUN python3 -m venv $POETRY_VENV \
-    && $POETRY_VENV/bin/pip install -U pip setuptools \
-    && $POETRY_VENV/bin/pip install poetry==1.6.1
+RUN ln -s /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 && \
+    ln -s /usr/bin/python${PYTHON_VERSION} /usr/bin/python && \
+    ln -s /usr/bin/pip3 /usr/bin/pip && \
+    python3 -m venv $POETRY_VENV && \
+    $POETRY_VENV/bin/pip install -U pip setuptools && \
+    $POETRY_VENV/bin/pip install poetry==1.6.1 && \
+    rm -rf /root/.cache/pip
 
 ENV PATH="${PATH}:${POETRY_VENV}/bin"
 
 WORKDIR /app
 
 COPY poetry.lock pyproject.toml ./
-
-RUN poetry config virtualenvs.in-project true
-RUN poetry install --no-root
+RUN poetry config virtualenvs.in-project true && \
+    poetry install --no-root && \
+    rm -rf /root/.cache/pypoetry && \
+    rm -rf /usr/local/lib/python${PYTHON_VERSION}/dist-packages/*
 
 COPY . .
-COPY --from=ffmpeg /FFmpeg-6.1.1 /FFmpeg-6.1.1
 COPY --from=ffmpeg /root/bin/ffmpeg /usr/local/bin/ffmpeg
 COPY --from=swagger-ui /usr/share/nginx/html/swagger-ui.css swagger-ui-assets/swagger-ui.css
 COPY --from=swagger-ui /usr/share/nginx/html/swagger-ui-bundle.js swagger-ui-assets/swagger-ui-bundle.js
 
-RUN poetry install
-RUN $POETRY_VENV/bin/pip install torch==1.13.1+cu117 -f https://download.pytorch.org/whl/torch
+RUN poetry install --no-dev && \
+    $POETRY_VENV/bin/pip install torch==1.13.1+cu117 -f https://download.pytorch.org/whl/torch && \
+    rm -rf /root/.cache/pip
 
 EXPOSE 9000
 
