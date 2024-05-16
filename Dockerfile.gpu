@@ -1,21 +1,12 @@
 # Stage 1: Build FFmpeg
 FROM debian:bookworm-slim AS ffmpeg
 
-RUN export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -qq update \
-    && apt-get -qq install --no-install-recommends \
-    build-essential \
-    git \
-    pkg-config \
-    yasm \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN git clone https://github.com/FFmpeg/FFmpeg.git --depth 1 --branch n6.1.1 --single-branch /FFmpeg-6.1.1
-
-WORKDIR /FFmpeg-6.1.1
-
-RUN PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get -qq update && \
+    apt-get -qq install --no-install-recommends build-essential git pkg-config yasm ca-certificates && \
+    git clone https://github.com/FFmpeg/FFmpeg.git --depth 1 --branch n6.1.1 --single-branch /FFmpeg-6.1.1 && \
+    cd /FFmpeg-6.1.1 && \
+    PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
       --prefix="$HOME/ffmpeg_build" \
       --pkg-config-flags="--static" \
       --extra-cflags="-I$HOME/ffmpeg_build/include" \
@@ -37,8 +28,7 @@ RUN PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./
       --enable-small && \
     PATH="$HOME/bin:$PATH" make -j$(nproc) && \
     make install && \
-    hash -r && \
-    rm -rf /FFmpeg-6.1.1
+    rm -rf /var/lib/apt/lists/* /FFmpeg-6.1.1
 
 # Stage 2: Get Swagger UI assets
 FROM swaggerapi/swagger-ui:v5.9.1 AS swagger-ui
@@ -49,26 +39,19 @@ FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
 ENV PYTHON_VERSION=3.10
 ENV POETRY_VENV=/app/.venv
 
-RUN export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -qq update \
-    && apt-get -qq install --no-install-recommends \
-    python${PYTHON_VERSION} \
-    python${PYTHON_VERSION}-venv \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN [ -e /usr/bin/python3 ] || ln -s /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 && \
-    [ -e /usr/bin/python ] || ln -s /usr/bin/python${PYTHON_VERSION} /usr/bin/python && \
-    [ -e /usr/bin/pip ] || ln -s /usr/bin/pip3 /usr/bin/pip && \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get -qq update && \
+    apt-get -qq install --no-install-recommends python${PYTHON_VERSION} python${PYTHON_VERSION}-venv python3-pip && \
     python${PYTHON_VERSION} -m venv $POETRY_VENV && \
-    $POETRY_VENV/bin/pip install -U pip setuptools && \
-    $POETRY_VENV/bin/pip install poetry==1.6.1
+    $POETRY_VENV/bin/pip install -U pip setuptools poetry==1.6.1 && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV PATH="${PATH}:${POETRY_VENV}/bin"
 
 WORKDIR /app
 
 COPY poetry.lock pyproject.toml ./
+
 RUN poetry config virtualenvs.in-project true && \
     poetry install --no-root && \
     rm -rf /root/.cache/pypoetry
@@ -84,4 +67,4 @@ RUN poetry install --no-dev && \
 
 EXPOSE 9000
 
-CMD gunicorn --bind 0.0.0.0:9000 --workers 1 --timeout 0 app.webservice:app -k uvicorn.workers.UvicornWorker
+CMD ["gunicorn", "--bind", "0.0.0.0:9000", "--workers", "1", "--timeout", "0", "app.webservice:app", "-k", "uvicorn.workers.UvicornWorker"]
